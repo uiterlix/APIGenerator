@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: apigenerator
+  labels:
+    app: apigenerator
+spec:
+  selector:
+    app: apigenerator
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  type: ClusterIP

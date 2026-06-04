@@ -1,0 +1,65 @@
+api:
+  name: "APIGenerator Service"
+  version: "1.0.0"
+
+database:
+  driverClassName: "org.h2.Driver"
+  url: "jdbc:h2:./testdb"
+  username: "sa"
+  password: ""
+  usernameEnv: "DB_USERNAME"
+  passwordEnv: "DB_PASSWORD"
+
+endpoints:
+  - path: "/users/:id"
+    method: "GET"
+    query: "SELECT id, name FROM users WHERE id = ?"
+    params:
+      - name: "id"
+        in: "path"
+        sqlType: "INTEGER"
+    response:
+      responseName: "UserResponse"
+      mapping:
+        user:
+          type: "object"
+          description: "User payload"
+          fields:
+            id:
+              source: "id"
+              type: "Integer"
+              description: "Unique user identifier"
+            profile:
+              type: "object"
+              description: "Profile information"
+              fields:
+                name:
+                  source: "name"
+                  type: "String"
+                  description: "Display name of the user"
+  - path: "/products"
+    method: "GET"
+    query: "SELECT id, name FROM products WHERE id = ?"
+    params:
+      - name: "id"
+        in: "query"
+        sqlType: "INTEGER"
+    response:
+      responseName: "ProductResponse"
+      mapping:
+        product:
+          type: "object"
+          description: "Product payload"
+          fields:
+            id:
+              source: "id"
+              type: "Integer"
+              description: "Unique product identifier"
+            details:
+              type: "object"
+              description: "Detailed product metadata"
+              fields:
+                name:
+                  source: "name"
+                  type: "String"
+                  description: "Human-readable product name"

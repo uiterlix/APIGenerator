@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apigenerator-config
+  labels:
+    app: apigenerator
+data:
+  config.yaml: |
+    api:
+      name: "APIGenerator Service"
+      version: "1.0.0"
+
+    database:
+      driverClassName: "com.ibm.db2.jcc.DB2Driver"
+      url: "jdbc:db2://db2-host:50000/MYDB"
+      usernameEnv: "DB_USERNAME"
+      passwordEnv: "DB_PASSWORD"
+
+    endpoints:
+      - path: "/users/:id"
+        method: "GET"
+        query: "SELECT id, name FROM users WHERE id = ?"
+        params:
+          - name: "id"
+            in: "path"
+            sqlType: "INTEGER"
+        response:
+          responseName: "UserResponse"
+          mapping:
+            user:
+              type: "object"
+              description: "User payload"
+              fields:
+                id:
+                  source: "id"
+                  type: "Integer"
+                  description: "Unique user identifier"
+                profile:
+                  type: "object"
+                  description: "Profile information"
+                  fields:
+                    name:
+                      source: "name"
+                      type: "String"
+                      description: "Display name of the user"
