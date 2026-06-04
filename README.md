@@ -258,11 +258,12 @@ The integration test:
 
 ## Project Structure
 
-- [src/main/java/ApiGenerator.java](src/main/java/ApiGenerator.java): server startup, route registration, SQL execution, OpenAPI generation.
-- [src/main/java/ApiConfig.java](src/main/java/ApiConfig.java): root config model.
-- [src/main/java/EndpointConfig.java](src/main/java/EndpointConfig.java): endpoint config model.
-- [src/main/java/ParamConfig.java](src/main/java/ParamConfig.java): request parameter config model.
-- [src/main/java/ResponseConfig.java](src/main/java/ResponseConfig.java): response config model.
-- [src/main/java/FieldMappingConfig.java](src/main/java/FieldMappingConfig.java): nested field mapping model.
+- [src/main/java/nl/uiterlix/apigenerator/ApiGenerator.java](src/main/java/nl/uiterlix/apigenerator/ApiGenerator.java): server startup, route registration, SQL execution.
+- [src/main/java/nl/uiterlix/apigenerator/OpenApiSpecGenerator.java](src/main/java/nl/uiterlix/apigenerator/OpenApiSpecGenerator.java): OpenAPI generation.
+- [src/main/java/nl/uiterlix/apigenerator/config/ApiConfig.java](src/main/java/nl/uiterlix/apigenerator/config/ApiConfig.java): root config model.
+- [src/main/java/nl/uiterlix/apigenerator/config/EndpointConfig.java](src/main/java/nl/uiterlix/apigenerator/config/EndpointConfig.java): endpoint config model.
+- [src/main/java/nl/uiterlix/apigenerator/config/ParamConfig.java](src/main/java/nl/uiterlix/apigenerator/config/ParamConfig.java): request parameter config model.
+- [src/main/java/nl/uiterlix/apigenerator/config/ResponseConfig.java](src/main/java/nl/uiterlix/apigenerator/config/ResponseConfig.java): response config model.
+- [src/main/java/nl/uiterlix/apigenerator/config/FieldMappingConfig.java](src/main/java/nl/uiterlix/apigenerator/config/FieldMappingConfig.java): nested field mapping model.
 - [src/main/resources/config.yaml](src/main/resources/config.yaml): API configuration.
 - [src/test/java/ApiGeneratorIntegrationTest.java](src/test/java/ApiGeneratorIntegrationTest.java): end-to-end integration test.
