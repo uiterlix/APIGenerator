@@ -5,6 +5,8 @@ import spark.Spark;
 import java.io.InputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -22,6 +24,9 @@ import java.util.Map;
 import java.util.UUID;
 
 public class ApiGenerator {
+        private static final String CONFIG_PATH_ENV = "APIGENERATOR_CONFIG_PATH";
+        private static final Path DEFAULT_EXTERNAL_CONFIG_PATH = Path.of("/config/config.yaml");
+
     public static void main(String[] args) throws IOException {
         ApiConfig apiConfig = loadConfig(args);
         int port = resolvePort();
@@ -31,8 +36,9 @@ public class ApiGenerator {
         static ApiConfig loadConfig(String[] args) throws IOException {
                 ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
-                if (args != null && args.length > 0 && args[0] != null && !args[0].isBlank()) {
-                        return yamlMapper.readValue(new java.io.File(args[0]), ApiConfig.class);
+                Path externalConfigPath = resolveExternalConfigPath(args);
+                if (externalConfigPath != null) {
+                        return yamlMapper.readValue(externalConfigPath.toFile(), ApiConfig.class);
                 }
 
                 try (InputStream stream = ApiGenerator.class.getClassLoader().getResourceAsStream("config.yaml")) {
@@ -41,6 +47,23 @@ public class ApiGenerator {
                         }
                         return yamlMapper.readValue(stream, ApiConfig.class);
                 }
+        }
+
+        private static Path resolveExternalConfigPath(String[] args) {
+                if (args != null && args.length > 0 && args[0] != null && !args[0].isBlank()) {
+                        return Path.of(args[0]);
+                }
+
+                String envPath = System.getenv(CONFIG_PATH_ENV);
+                if (envPath != null && !envPath.isBlank()) {
+                        return Path.of(envPath);
+                }
+
+                if (Files.exists(DEFAULT_EXTERNAL_CONFIG_PATH)) {
+                        return DEFAULT_EXTERNAL_CONFIG_PATH;
+                }
+
+                return null;
         }
 
         static void start(ApiConfig apiConfig, int port) {

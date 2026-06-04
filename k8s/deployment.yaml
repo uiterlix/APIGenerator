@@ -18,8 +18,6 @@ spec:
         - name: apigenerator
           image: apigenerator:latest
           imagePullPolicy: IfNotPresent
-          args:
-            - /config/config.yaml
           ports:
             - containerPort: 8080
               name: http

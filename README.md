@@ -18,7 +18,8 @@ From one config file, the app can:
 
 ## How It Works
 
-1. The app loads [src/main/resources/config.yaml](src/main/resources/config.yaml).
+1. The app loads configuration with this precedence:
+  CLI path argument, then `APIGENERATOR_CONFIG_PATH`, then `/config/config.yaml`, then bundled [src/main/resources/config.yaml](src/main/resources/config.yaml).
 2. JDBC driver, URL, and credentials are resolved from `database` config.
 3. Each endpoint definition registers a Spark route.
 4. Params are read from path/query and bound with typed JDBC setters.
@@ -175,6 +176,8 @@ The deployment uses:
 - liveness probe on `/health/live`,
 - readiness probe on `/health/ready`.
 
+Because the application auto-detects `/config/config.yaml`, the container does not need an explicit startup argument in Kubernetes.
+
 Apply the manifests:
 
 ```bash
@@ -213,7 +216,7 @@ docker run --rm -p 8080:8080 \
   apigenerator:latest
 ```
 
-The container listens on port `8080`. You can also provide an alternate config file path as the first container argument if you mount a different YAML file.
+The container listens on port `8080`. You can also provide an alternate config file path as the first container argument or through `APIGENERATOR_CONFIG_PATH`.
 
 ## OpenAPI Output
 
