@@ -59,6 +59,7 @@ endpoints:
       - name: "id"
         in: "path"
         sqlType: "INTEGER"
+        description: "Unique user identifier"
     response:
       responseName: "UserResponse"
       mapping:
@@ -102,6 +103,9 @@ Each parameter requires:
 - `in`: `path` or `query`.
 - `sqlType`: JDBC-style type name.
 
+Optional:
+- `description`: parameter documentation shown in OpenAPI.
+
 Example:
 
 ```yaml
@@ -109,6 +113,7 @@ params:
   - name: "id"
     in: "query"
     sqlType: "INTEGER"
+    description: "Unique user identifier"
 ```
 
 ### Supported `sqlType` Values
@@ -227,6 +232,7 @@ The server exposes OpenAPI at:
 The generated spec includes:
 - `info.title` and `info.version` from `api.name` and `api.version`,
 - endpoint parameter definitions with inferred OpenAPI types/formats,
+- endpoint parameter descriptions from `params[].description`,
 - `$ref` responses to `#/components/schemas/<responseName>`.
 
 ## Run the Project

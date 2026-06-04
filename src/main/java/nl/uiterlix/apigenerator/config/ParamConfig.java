@@ -12,6 +12,9 @@ public class ParamConfig {
     @JsonProperty("sqlType")
     private String sqlType;
 
+    @JsonProperty("description")
+    private String description;
+
     public String getName() {
         return name;
     }
@@ -34,6 +37,14 @@ public class ParamConfig {
 
     public void setSqlType(String sqlType) {
         this.sqlType = sqlType;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public void validate(String endpointPath) {

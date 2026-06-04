@@ -63,12 +63,15 @@ public final class OpenApiSpecGenerator {
                 .map(param -> {
                     String paramIn = "path".equalsIgnoreCase(param.getIn()) ? "path" : "query";
                     Map<String, Object> schema = openApiParamSchema(param.getSqlType());
-                    return Map.of(
-                            "name", param.getName(),
-                            "in", paramIn,
-                            "required", "path".equals(paramIn),
-                            "schema", schema
-                    );
+                    Map<String, Object> parameter = new LinkedHashMap<>();
+                    parameter.put("name", param.getName());
+                    parameter.put("in", paramIn);
+                    parameter.put("required", "path".equals(paramIn));
+                    parameter.put("schema", schema);
+                    if (param.getDescription() != null && !param.getDescription().isBlank()) {
+                        parameter.put("description", param.getDescription());
+                    }
+                    return parameter;
                 })
                 .collect(Collectors.toList());
     }

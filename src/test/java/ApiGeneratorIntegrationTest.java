@@ -100,6 +100,7 @@ public class ApiGeneratorIntegrationTest {
         Map<String, Object> userIdParamSchema = JSON.convertValue(userIdParam.get("schema"), new TypeReference<>() {});
         assertEquals("integer", userIdParamSchema.get("type"));
         assertEquals("int32", userIdParamSchema.get("format"));
+        assertEquals("Unique user identifier", userIdParam.get("description"));
 
         Map<String, Object> productsPath = JSON.convertValue(paths.get("/products"), new TypeReference<>() {});
         Map<String, Object> productsGet = JSON.convertValue(productsPath.get("get"), new TypeReference<>() {});
@@ -108,6 +109,7 @@ public class ApiGeneratorIntegrationTest {
         Map<String, Object> productIdParamSchema = JSON.convertValue(productIdParam.get("schema"), new TypeReference<>() {});
         assertEquals("integer", productIdParamSchema.get("type"));
         assertEquals("int32", productIdParamSchema.get("format"));
+        assertEquals("Unique product identifier", productIdParam.get("description"));
 
         Map<String, Object> responses = JSON.convertValue(usersGet.get("responses"), new TypeReference<>() {});
         Map<String, Object> response200 = JSON.convertValue(responses.get("200"), new TypeReference<>() {});
