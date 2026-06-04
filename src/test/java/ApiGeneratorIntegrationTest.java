@@ -18,6 +18,7 @@ import java.net.http.HttpResponse;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,7 +39,16 @@ public class ApiGeneratorIntegrationTest {
             statement.execute("CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(255))");
             statement.execute("CREATE TABLE products (id INT PRIMARY KEY, name VARCHAR(255))");
             statement.execute("INSERT INTO users (id, name) VALUES (1, 'Alice')");
+            statement.execute("INSERT INTO users (id, name) VALUES (2, 'Bob')");
+            statement.execute("INSERT INTO users (id, name) VALUES (3, 'Charlie')");
+            statement.execute("INSERT INTO users (id, name) VALUES (4, 'Diana')");
+            statement.execute("INSERT INTO users (id, name) VALUES (5, 'Eve')");
+
+            statement.execute("INSERT INTO products (id, name) VALUES (1, 'Mouse')");
             statement.execute("INSERT INTO products (id, name) VALUES (2, 'Keyboard')");
+            statement.execute("INSERT INTO products (id, name) VALUES (3, 'Monitor')");
+            statement.execute("INSERT INTO products (id, name) VALUES (4, 'Laptop')");
+            statement.execute("INSERT INTO products (id, name) VALUES (5, 'Dock')");
         }
 
         apiPort = findFreePort();
@@ -80,6 +90,38 @@ public class ApiGeneratorIntegrationTest {
     }
 
     @Test
+    void usersEndpointWithoutParamsReturnsAllRecords() throws Exception {
+        List<Map<String, Object>> body = getJsonList("/users");
+        assertEquals(5, body.size());
+
+        Map<String, Object> first = JSON.convertValue(body.get(0).get("user"), new TypeReference<>() {});
+        Map<String, Object> firstProfile = JSON.convertValue(first.get("profile"), new TypeReference<>() {});
+        assertEquals(1, first.get("id"));
+        assertEquals("Alice", firstProfile.get("name"));
+
+        Map<String, Object> last = JSON.convertValue(body.get(4).get("user"), new TypeReference<>() {});
+        Map<String, Object> lastProfile = JSON.convertValue(last.get("profile"), new TypeReference<>() {});
+        assertEquals(5, last.get("id"));
+        assertEquals("Eve", lastProfile.get("name"));
+    }
+
+    @Test
+    void productsEndpointWithoutParamsReturnsAllRecords() throws Exception {
+        List<Map<String, Object>> body = getJsonList("/products/all");
+        assertEquals(5, body.size());
+
+        Map<String, Object> first = JSON.convertValue(body.get(0).get("product"), new TypeReference<>() {});
+        Map<String, Object> firstDetails = JSON.convertValue(first.get("details"), new TypeReference<>() {});
+        assertEquals(1, first.get("id"));
+        assertEquals("Mouse", firstDetails.get("name"));
+
+        Map<String, Object> last = JSON.convertValue(body.get(4).get("product"), new TypeReference<>() {});
+        Map<String, Object> lastDetails = JSON.convertValue(last.get("details"), new TypeReference<>() {});
+        assertEquals(5, last.get("id"));
+        assertEquals("Dock", lastDetails.get("name"));
+    }
+
+    @Test
     void openApiEndpointReflectsConfiguredPathsAndParameters() throws Exception {
         Map<String, Object> openApi = getJson("/openapi");
         Map<String, Object> info = JSON.convertValue(openApi.get("info"), new TypeReference<>() {});
@@ -90,8 +132,12 @@ public class ApiGeneratorIntegrationTest {
         assertEquals("1.0.0", info.get("version"));
         assertEquals(true, paths.containsKey("/users/{id}"));
         assertEquals(true, paths.containsKey("/products"));
+        assertEquals(true, paths.containsKey("/users"));
+        assertEquals(true, paths.containsKey("/products/all"));
         assertEquals(true, schemas.containsKey("UserResponse"));
         assertEquals(true, schemas.containsKey("ProductResponse"));
+        assertEquals(true, schemas.containsKey("AllUsersResponse"));
+        assertEquals(true, schemas.containsKey("AllProductsResponse"));
 
         Map<String, Object> usersPath = JSON.convertValue(paths.get("/users/{id}"), new TypeReference<>() {});
         Map<String, Object> usersGet = JSON.convertValue(usersPath.get("get"), new TypeReference<>() {});
@@ -112,6 +158,18 @@ public class ApiGeneratorIntegrationTest {
         assertEquals("integer", productIdParamSchema.get("type"));
         assertEquals("int32", productIdParamSchema.get("format"));
         assertEquals("Unique product identifier", productIdParam.get("description"));
+
+        Map<String, Object> usersAllPath = JSON.convertValue(paths.get("/users"), new TypeReference<>() {});
+        Map<String, Object> usersAllGet = JSON.convertValue(usersAllPath.get("get"), new TypeReference<>() {});
+        assertEquals("Fetch all users", usersAllGet.get("description"));
+        java.util.List<Map<String, Object>> usersAllParameters = JSON.convertValue(usersAllGet.get("parameters"), new TypeReference<>() {});
+        assertEquals(0, usersAllParameters.size());
+
+        Map<String, Object> productsAllPath = JSON.convertValue(paths.get("/products/all"), new TypeReference<>() {});
+        Map<String, Object> productsAllGet = JSON.convertValue(productsAllPath.get("get"), new TypeReference<>() {});
+        assertEquals("Fetch all products", productsAllGet.get("description"));
+        java.util.List<Map<String, Object>> productsAllParameters = JSON.convertValue(productsAllGet.get("parameters"), new TypeReference<>() {});
+        assertEquals(0, productsAllParameters.size());
 
         Map<String, Object> responses = JSON.convertValue(usersGet.get("responses"), new TypeReference<>() {});
         Map<String, Object> response200 = JSON.convertValue(responses.get("200"), new TypeReference<>() {});
@@ -149,6 +207,18 @@ public class ApiGeneratorIntegrationTest {
     }
 
     private static Map<String, Object> getJson(String path) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + apiPort + path))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertTrue(response.statusCode() >= 200 && response.statusCode() < 300, "Expected successful response but got " + response.statusCode());
+        return JSON.readValue(response.body(), new TypeReference<>() {});
+    }
+
+    private static List<Map<String, Object>> getJsonList(String path) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:" + apiPort + path))

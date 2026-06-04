@@ -67,3 +67,49 @@ endpoints:
                   source: "name"
                   type: "String"
                   description: "Human-readable product name"
+  - path: "/users"
+    method: "GET"
+    description: "Fetch all users"
+    query: "SELECT id, name FROM users ORDER BY id"
+    response:
+      responseName: "AllUsersResponse"
+      mapping:
+        user:
+          type: "object"
+          description: "User payload"
+          fields:
+            id:
+              source: "id"
+              type: "Integer"
+              description: "Unique user identifier"
+            profile:
+              type: "object"
+              description: "Profile information"
+              fields:
+                name:
+                  source: "name"
+                  type: "String"
+                  description: "Display name of the user"
+  - path: "/products/all"
+    method: "GET"
+    description: "Fetch all products"
+    query: "SELECT id, name FROM products ORDER BY id"
+    response:
+      responseName: "AllProductsResponse"
+      mapping:
+        product:
+          type: "object"
+          description: "Product payload"
+          fields:
+            id:
+              source: "id"
+              type: "Integer"
+              description: "Unique product identifier"
+            details:
+              type: "object"
+              description: "Detailed product metadata"
+              fields:
+                name:
+                  source: "name"
+                  type: "String"
+                  description: "Human-readable product name"

@@ -103,7 +103,7 @@ endpoints:
 - `method`: currently `GET`.
 - `description`: optional endpoint documentation shown in OpenAPI for this method.
 - `query`: SQL query executed for the endpoint.
-- `params`: ordered list matching `?` placeholders in `query`.
+- `params`: optional ordered list matching `?` placeholders in `query`. Omit this when the query has no placeholders.
 - `response.responseName`: schema name used in OpenAPI `components.schemas`.
 - `response.mapping`: nested object mapping for output JSON and schema generation.
 
