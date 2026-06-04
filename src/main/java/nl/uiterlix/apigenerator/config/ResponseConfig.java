@@ -1,4 +1,7 @@
+package nl.uiterlix.apigenerator.config;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Map;
 
 public class ResponseConfig {

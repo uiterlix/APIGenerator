@@ -21,7 +21,7 @@ dependencies {
 }
 
 application {
-    mainClass = "ApiGenerator"
+    mainClass = "nl.uiterlix.apigenerator.ApiGenerator"
 }
 
 tasks.test {

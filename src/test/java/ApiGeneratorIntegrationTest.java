@@ -1,5 +1,8 @@
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import nl.uiterlix.apigenerator.ApiGenerator;
+import nl.uiterlix.apigenerator.config.ApiConfig;
+import nl.uiterlix.apigenerator.config.DatabaseConfig;
 import org.h2.tools.Server;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

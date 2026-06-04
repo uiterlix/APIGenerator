@@ -1,3 +1,5 @@
+package nl.uiterlix.apigenerator.config;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ApiInfoConfig {

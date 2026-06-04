@@ -1,3 +1,9 @@
+package nl.uiterlix.apigenerator;
+
+import nl.uiterlix.apigenerator.config.ApiConfig;
+import nl.uiterlix.apigenerator.config.EndpointConfig;
+import nl.uiterlix.apigenerator.config.FieldMappingConfig;
+
 import java.sql.JDBCType;
 import java.util.LinkedHashMap;
 import java.util.List;

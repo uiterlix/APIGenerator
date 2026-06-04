@@ -19,4 +19,4 @@ COPY --from=build /workspace/build/install/APIGenerator/ /opt/apigenerator/
 EXPOSE 8080
 USER app
 
-ENTRYPOINT ["java", "-cp", "/opt/apigenerator/lib/*", "ApiGenerator"]
+ENTRYPOINT ["java", "-cp", "/opt/apigenerator/lib/*", "nl.uiterlix.apigenerator.ApiGenerator"]
