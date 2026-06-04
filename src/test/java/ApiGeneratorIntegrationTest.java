@@ -140,9 +140,12 @@ public class ApiGeneratorIntegrationTest {
     void healthEndpointsReportLiveAndReady() throws Exception {
         Map<String, Object> live = getJson("/health/live");
         Map<String, Object> ready = getJson("/health/ready");
+        Map<String, Object> readySecond = getJson("/health/ready");
 
         assertEquals("UP", live.get("status"));
         assertEquals("UP", ready.get("status"));
+        assertEquals("UP", readySecond.get("status"));
+        assertEquals(ready.get("checkedAtEpochMs"), readySecond.get("checkedAtEpochMs"));
     }
 
     private static Map<String, Object> getJson(String path) throws IOException, InterruptedException {

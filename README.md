@@ -30,7 +30,16 @@ From one config file, the app can:
 
 The service exposes two probe-friendly endpoints:
 - `GET /health/live`: returns `200` when the process is running.
-- `GET /health/ready`: returns `200` when the service can open a database connection, otherwise `503`.
+- `GET /health/ready`: returns `200` when the latest database readiness check is healthy, otherwise `503`.
+
+Readiness checks are cached to reduce probe load on the database:
+- The service performs a real DB validation check at most once per interval (default `10000ms`).
+- Requests inside that interval return the cached readiness result.
+- Response payload includes `checkedAtEpochMs` for visibility into cache freshness.
+
+Tune readiness behavior with environment variables:
+- `APIGENERATOR_READINESS_CHECK_INTERVAL_MS` (default `10000`)
+- `APIGENERATOR_READINESS_DB_TIMEOUT_MS` (default `2000`)
 
 These are intended for Kubernetes liveness and readiness probes.
 

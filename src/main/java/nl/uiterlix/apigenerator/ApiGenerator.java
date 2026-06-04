@@ -32,7 +32,11 @@ import java.util.UUID;
 
 public class ApiGenerator {
     private static final String CONFIG_PATH_ENV = "APIGENERATOR_CONFIG_PATH";
+    private static final String READINESS_CHECK_INTERVAL_MS_ENV = "APIGENERATOR_READINESS_CHECK_INTERVAL_MS";
+    private static final String READINESS_DB_TIMEOUT_MS_ENV = "APIGENERATOR_READINESS_DB_TIMEOUT_MS";
     private static final Path DEFAULT_EXTERNAL_CONFIG_PATH = Path.of("/config/config.yaml");
+    private static final long DEFAULT_READINESS_CHECK_INTERVAL_MS = 10_000;
+    private static final long DEFAULT_READINESS_DB_TIMEOUT_MS = 2_000;
 
     public static void main(String[] args) throws IOException {
         ApiConfig apiConfig = loadConfig(args);
@@ -79,6 +83,11 @@ public class ApiGenerator {
 
         DatabaseConnectionInfo databaseConnectionInfo = resolveDatabaseConnectionInfo(apiConfig.getDatabase());
         loadJdbcDriver(databaseConnectionInfo.driverClassName());
+        ReadinessProbe readinessProbe = new ReadinessProbe(
+            databaseConnectionInfo,
+            resolvePositiveLongEnv(READINESS_CHECK_INTERVAL_MS_ENV, DEFAULT_READINESS_CHECK_INTERVAL_MS),
+            resolvePositiveLongEnv(READINESS_DB_TIMEOUT_MS_ENV, DEFAULT_READINESS_DB_TIMEOUT_MS)
+        );
 
         Spark.get("/openapi", (req, res) -> {
             res.type("application/json");
@@ -93,18 +102,11 @@ public class ApiGenerator {
         Spark.get("/health/ready", (req, res) -> {
             res.type("application/json");
 
-            try (Connection ignored = DriverManager.getConnection(
-                    databaseConnectionInfo.url(),
-                    databaseConnectionInfo.username(),
-                    databaseConnectionInfo.password())) {
-                return Map.of("status", "UP");
-            } catch (SQLException ex) {
+            ReadinessResult readiness = readinessProbe.getStatus();
+            if (!readiness.up()) {
                 res.status(503);
-                return Map.of(
-                        "status", "DOWN",
-                        "details", ex.getMessage()
-                );
             }
+            return readiness.toResponse();
         }, new ObjectMapper()::writeValueAsString);
 
         apiConfig.getEndpoints().forEach(endpoint -> {
@@ -151,6 +153,19 @@ public class ApiGenerator {
             return 8080;
         }
         return Integer.parseInt(rawPort);
+    }
+
+    private static long resolvePositiveLongEnv(String envName, long defaultValue) {
+        String raw = System.getenv(envName);
+        if (raw == null || raw.isBlank()) {
+            return defaultValue;
+        }
+        try {
+            long parsed = Long.parseLong(raw);
+            return parsed > 0 ? parsed : defaultValue;
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
     }
 
     private static DatabaseConnectionInfo resolveDatabaseConnectionInfo(DatabaseConfig databaseConfig) {
@@ -312,6 +327,67 @@ public class ApiGenerator {
             case "string":
             default:
                 return resultSet.getString(sourceColumn);
+        }
+    }
+
+    private static final class ReadinessProbe {
+        private final DatabaseConnectionInfo connectionInfo;
+        private final long checkIntervalMs;
+        private final int dbTimeoutSeconds;
+
+        private final Object lock = new Object();
+        private volatile ReadinessResult lastResult = new ReadinessResult(false, "Readiness has not been checked yet", 0L);
+
+        private ReadinessProbe(DatabaseConnectionInfo connectionInfo, long checkIntervalMs, long dbTimeoutMs) {
+            this.connectionInfo = connectionInfo;
+            this.checkIntervalMs = checkIntervalMs;
+            this.dbTimeoutSeconds = Math.max(1, (int) Math.ceil(dbTimeoutMs / 1000.0));
+        }
+
+        private ReadinessResult getStatus() {
+            long now = System.currentTimeMillis();
+            ReadinessResult snapshot = lastResult;
+            if (snapshot.checkedAtEpochMs() > 0 && now - snapshot.checkedAtEpochMs() < checkIntervalMs) {
+                return snapshot;
+            }
+
+            synchronized (lock) {
+                now = System.currentTimeMillis();
+                snapshot = lastResult;
+                if (snapshot.checkedAtEpochMs() > 0 && now - snapshot.checkedAtEpochMs() < checkIntervalMs) {
+                    return snapshot;
+                }
+
+                try (Connection connection = DriverManager.getConnection(
+                        connectionInfo.url(),
+                        connectionInfo.username(),
+                        connectionInfo.password())) {
+                    if (connection.isValid(dbTimeoutSeconds)) {
+                        lastResult = new ReadinessResult(true, null, now);
+                    } else {
+                        lastResult = new ReadinessResult(false, "Database connection validation failed", now);
+                    }
+                } catch (SQLException ex) {
+                    lastResult = new ReadinessResult(false, ex.getMessage(), now);
+                }
+                return lastResult;
+            }
+        }
+    }
+
+    private record ReadinessResult(boolean up, String details, long checkedAtEpochMs) {
+        private Map<String, Object> toResponse() {
+            if (up) {
+                return Map.of(
+                        "status", "UP",
+                        "checkedAtEpochMs", checkedAtEpochMs
+                );
+            }
+            return Map.of(
+                    "status", "DOWN",
+                    "details", details,
+                    "checkedAtEpochMs", checkedAtEpochMs
+            );
         }
     }
 
