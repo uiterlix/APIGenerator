@@ -1,5 +1,7 @@
 package nl.uiterlix.apigenerator;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import nl.uiterlix.apigenerator.config.ApiConfig;
@@ -29,14 +31,21 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import javax.sql.DataSource;
 
 public class ApiGenerator {
     private static final String CONFIG_PATH_ENV = "APIGENERATOR_CONFIG_PATH";
     private static final String READINESS_CHECK_INTERVAL_MS_ENV = "APIGENERATOR_READINESS_CHECK_INTERVAL_MS";
     private static final String READINESS_DB_TIMEOUT_MS_ENV = "APIGENERATOR_READINESS_DB_TIMEOUT_MS";
+    private static final String DB_POOL_MAX_SIZE_ENV = "APIGENERATOR_DB_POOL_MAX_SIZE";
+    private static final String DB_POOL_MIN_IDLE_ENV = "APIGENERATOR_DB_POOL_MIN_IDLE";
+    private static final String DB_POOL_CONNECTION_TIMEOUT_MS_ENV = "APIGENERATOR_DB_POOL_CONNECTION_TIMEOUT_MS";
     private static final Path DEFAULT_EXTERNAL_CONFIG_PATH = Path.of("/config/config.yaml");
     private static final long DEFAULT_READINESS_CHECK_INTERVAL_MS = 10_000;
     private static final long DEFAULT_READINESS_DB_TIMEOUT_MS = 2_000;
+    private static final int DEFAULT_DB_POOL_MAX_SIZE = 10;
+    private static final int DEFAULT_DB_POOL_MIN_IDLE = 2;
+    private static final long DEFAULT_DB_POOL_CONNECTION_TIMEOUT_MS = 30_000;
 
     public static void main(String[] args) throws IOException {
         ApiConfig apiConfig = loadConfig(args);
@@ -83,8 +92,10 @@ public class ApiGenerator {
 
         DatabaseConnectionInfo databaseConnectionInfo = resolveDatabaseConnectionInfo(apiConfig.getDatabase());
         loadJdbcDriver(databaseConnectionInfo.driverClassName());
+        HikariDataSource dataSource = createDataSource(databaseConnectionInfo);
+        Runtime.getRuntime().addShutdownHook(new Thread(dataSource::close));
         ReadinessProbe readinessProbe = new ReadinessProbe(
-            databaseConnectionInfo,
+            dataSource,
             resolvePositiveLongEnv(READINESS_CHECK_INTERVAL_MS_ENV, DEFAULT_READINESS_CHECK_INTERVAL_MS),
             resolvePositiveLongEnv(READINESS_DB_TIMEOUT_MS_ENV, DEFAULT_READINESS_DB_TIMEOUT_MS)
         );
@@ -113,10 +124,7 @@ public class ApiGenerator {
             Spark.get(endpoint.getPath(), (req, res) -> {
                 res.status(200);
 
-                try (Connection connection = DriverManager.getConnection(
-                        databaseConnectionInfo.url(),
-                        databaseConnectionInfo.username(),
-                        databaseConnectionInfo.password())) {
+                try (Connection connection = dataSource.getConnection()) {
                     String query = endpoint.getQuery();
                     PreparedStatement statement = connection.prepareStatement(query);
                     bindParameters(statement, endpoint.getParams(), req);
@@ -166,6 +174,32 @@ public class ApiGenerator {
         } catch (NumberFormatException ignored) {
             return defaultValue;
         }
+    }
+
+    private static int resolvePositiveIntEnv(String envName, int defaultValue) {
+        String raw = System.getenv(envName);
+        if (raw == null || raw.isBlank()) {
+            return defaultValue;
+        }
+        try {
+            int parsed = Integer.parseInt(raw);
+            return parsed > 0 ? parsed : defaultValue;
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
+    }
+
+    private static HikariDataSource createDataSource(DatabaseConnectionInfo connectionInfo) {
+        HikariConfig config = new HikariConfig();
+        config.setDriverClassName(connectionInfo.driverClassName());
+        config.setJdbcUrl(connectionInfo.url());
+        config.setUsername(connectionInfo.username());
+        config.setPassword(connectionInfo.password());
+        config.setMaximumPoolSize(resolvePositiveIntEnv(DB_POOL_MAX_SIZE_ENV, DEFAULT_DB_POOL_MAX_SIZE));
+        config.setMinimumIdle(resolvePositiveIntEnv(DB_POOL_MIN_IDLE_ENV, DEFAULT_DB_POOL_MIN_IDLE));
+        config.setConnectionTimeout(resolvePositiveLongEnv(DB_POOL_CONNECTION_TIMEOUT_MS_ENV, DEFAULT_DB_POOL_CONNECTION_TIMEOUT_MS));
+        config.setPoolName("apigenerator-db-pool");
+        return new HikariDataSource(config);
     }
 
     private static DatabaseConnectionInfo resolveDatabaseConnectionInfo(DatabaseConfig databaseConfig) {
@@ -331,15 +365,15 @@ public class ApiGenerator {
     }
 
     private static final class ReadinessProbe {
-        private final DatabaseConnectionInfo connectionInfo;
+        private final DataSource dataSource;
         private final long checkIntervalMs;
         private final int dbTimeoutSeconds;
 
         private final Object lock = new Object();
         private volatile ReadinessResult lastResult = new ReadinessResult(false, "Readiness has not been checked yet", 0L);
 
-        private ReadinessProbe(DatabaseConnectionInfo connectionInfo, long checkIntervalMs, long dbTimeoutMs) {
-            this.connectionInfo = connectionInfo;
+        private ReadinessProbe(DataSource dataSource, long checkIntervalMs, long dbTimeoutMs) {
+            this.dataSource = dataSource;
             this.checkIntervalMs = checkIntervalMs;
             this.dbTimeoutSeconds = Math.max(1, (int) Math.ceil(dbTimeoutMs / 1000.0));
         }
@@ -358,10 +392,7 @@ public class ApiGenerator {
                     return snapshot;
                 }
 
-                try (Connection connection = DriverManager.getConnection(
-                        connectionInfo.url(),
-                        connectionInfo.username(),
-                        connectionInfo.password())) {
+                try (Connection connection = dataSource.getConnection()) {
                     if (connection.isValid(dbTimeoutSeconds)) {
                         lastResult = new ReadinessResult(true, null, now);
                     } else {

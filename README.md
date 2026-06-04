@@ -41,6 +41,11 @@ Tune readiness behavior with environment variables:
 - `APIGENERATOR_READINESS_CHECK_INTERVAL_MS` (default `10000`)
 - `APIGENERATOR_READINESS_DB_TIMEOUT_MS` (default `2000`)
 
+Tune database pool behavior with environment variables:
+- `APIGENERATOR_DB_POOL_MAX_SIZE` (default `10`)
+- `APIGENERATOR_DB_POOL_MIN_IDLE` (default `2`)
+- `APIGENERATOR_DB_POOL_CONNECTION_TIMEOUT_MS` (default `30000`)
+
 These are intended for Kubernetes liveness and readiness probes.
 
 ## Configuration Overview
@@ -156,6 +161,8 @@ This mapping drives both:
 ## Database Configuration
 
 Database connectivity is now fully config-driven. The application loads the JDBC driver class declared in `database.driverClassName` and opens connections with the configured URL and credentials.
+
+The service uses a shared HikariCP connection pool instead of opening a brand-new JDBC connection per request.
 
 Credential resolution order:
 - If `database.usernameEnv` is set and the environment variable exists, that value is used.
