@@ -11,6 +11,9 @@ public class EndpointConfig {
     @JsonProperty("method")
     private String method;
 
+    @JsonProperty("description")
+    private String description;
+
     @JsonProperty("response")
     private ResponseConfig response;
 
@@ -50,6 +53,14 @@ public class EndpointConfig {
 
     public void setMethod(String method) {
         this.method = method;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public ResponseConfig getResponse() {

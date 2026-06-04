@@ -54,6 +54,7 @@ database:
 endpoints:
   - path: "/users/:id"
     method: "GET"
+    description: "Fetch a user by ID"
     query: "SELECT id, name FROM users WHERE id = ?"
     params:
       - name: "id"
@@ -91,6 +92,7 @@ endpoints:
 - `database.passwordEnv`: environment variable name to read password from.
 - `path`: Spark route path. Use `:paramName` for path params.
 - `method`: currently `GET`.
+- `description`: optional endpoint documentation shown in OpenAPI for this method.
 - `query`: SQL query executed for the endpoint.
 - `params`: ordered list matching `?` placeholders in `query`.
 - `response.responseName`: schema name used in OpenAPI `components.schemas`.
@@ -231,6 +233,7 @@ The server exposes OpenAPI at:
 
 The generated spec includes:
 - `info.title` and `info.version` from `api.name` and `api.version`,
+- endpoint method descriptions from `endpoints[].description`,
 - endpoint parameter definitions with inferred OpenAPI types/formats,
 - endpoint parameter descriptions from `params[].description`,
 - `$ref` responses to `#/components/schemas/<responseName>`.

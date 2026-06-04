@@ -26,26 +26,31 @@ public final class OpenApiSpecGenerator {
                 ),
                 "paths", apiConfig.getEndpoints().stream().collect(Collectors.toMap(
                         endpoint -> openApiPath(endpoint.getPath()),
-                        endpoint -> Map.of(
-                                endpoint.getMethod().toLowerCase(), Map.of(
-                                        "parameters", buildOpenApiParameters(endpoint),
-                                        "responses", Map.of(
-                                                "200", Map.of(
-                                                        "description", "Response",
-                                                        "content", Map.of(
-                                                                "application/json", Map.of(
-                                                                        "schema", Map.of(
-                                                                                "$ref", "#/components/schemas/" + schemaNameFor(endpoint)
-                                                                        )
-                                                                )
-                                                        )
-                                                )
-                                        )
-                                )
-                        )
+                    endpoint -> Map.of(endpoint.getMethod().toLowerCase(), buildOpenApiOperation(endpoint))
                 ))
         );
     }
+
+            private static Map<String, Object> buildOpenApiOperation(EndpointConfig endpoint) {
+            Map<String, Object> operation = new LinkedHashMap<>();
+            if (endpoint.getDescription() != null && !endpoint.getDescription().isBlank()) {
+                operation.put("description", endpoint.getDescription());
+            }
+            operation.put("parameters", buildOpenApiParameters(endpoint));
+            operation.put("responses", Map.of(
+                "200", Map.of(
+                    "description", "Response",
+                    "content", Map.of(
+                        "application/json", Map.of(
+                            "schema", Map.of(
+                                "$ref", "#/components/schemas/" + schemaNameFor(endpoint)
+                            )
+                        )
+                    )
+                )
+            ));
+            return operation;
+            }
 
     private static String openApiPath(String sparkPath) {
         if (sparkPath == null) {
